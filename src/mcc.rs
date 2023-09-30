@@ -6,7 +6,7 @@ use thiserror::Error;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take, take_while1},
-    character::complete::{char, digit1, line_ending, not_line_ending, one_of, tab},
+    character::complete::{char, digit1, line_ending, multispace0, not_line_ending, one_of, tab},
     combinator::{map, map_opt, map_res, recognize},
     multi::many0,
     multi::many1,
@@ -75,12 +75,12 @@ impl Header {
 
     fn parse_time_code(input: &str) -> IResult<&str, TimeCodeFormat> {
         let (input, _) = tag("Time Code Rate=")(input)?;
-        let (remaining_input, TimeCodeFormat) = map_opt(
+        let (remaining_input, timecode_format) = map_opt(
             take_while1(|c: char| c.is_numeric() || c == 'D' || c == 'F'),
             TimeCodeFormat::from_str,
         )(input)?;
         let (remaining_input, _) = line_ending(remaining_input)?;
-        Ok((remaining_input, TimeCodeFormat))
+        Ok((remaining_input, timecode_format))
     }
 
     fn skip_comments(input: &str) -> IResult<&str, ()> {
@@ -112,11 +112,16 @@ impl MCC {
         let mut file = read_to_string(path)?;
         let (mut input, v) = Self::from_str(&mut file)?;
 
-        let (_, m) = Self::parse_line(&mut input)?;
+        let (_, m) = Self::parse_lines(&mut input)?;
 
         dbg!(m);
 
         Ok(v)
+    }
+
+    fn parse_lines(input: &str) -> IResult<&str, Vec<MCCLine>> {
+        let (input, _) = multispace0(input)?;
+        many1(Self::parse_line)(input)
     }
 
     pub fn from_str(input: &str) -> IResult<&str, MCC> {
