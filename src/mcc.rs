@@ -101,6 +101,12 @@ pub struct MCC {
     header: Header,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct MCCLine {
+    pub timecode: TimeCode,
+    pub data: Vec<u8>,
+}
+
 impl MCC {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         let mut file = read_to_string(path)?;
@@ -156,8 +162,10 @@ impl MCC {
         }
     }
 
-    fn parse_line(input: &str) -> IResult<&str, (TimeCode, Vec<u8>)> {
-        tuple((Self::parse_time_code, preceded(tab, Self::combined_parser)))(input)
+    fn parse_line(input: &str) -> IResult<&str, MCCLine> {
+        let (remaining, (tc, data)) =
+            tuple((Self::parse_time_code, preceded(tab, Self::combined_parser)))(input)?;
+        Ok((remaining, MCCLine { timecode: tc, data }))
     }
 
     fn special_char_parser(input: &str) -> IResult<&str, Vec<u8>> {
