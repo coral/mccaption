@@ -83,6 +83,7 @@ mod tests {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct TimeCode {
     pub hour: u32,
     pub minute: u32,

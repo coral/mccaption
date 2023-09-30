@@ -1,4 +1,4 @@
-use crate::TimeCodeFormat;
+use crate::{TimeCode, TimeCodeFormat};
 use std::fs::read_to_string;
 use std::path::Path;
 use thiserror::Error;
@@ -119,13 +119,15 @@ impl MCC {
         Ok((input, MCC { header }))
     }
 
-    fn parse_time_code(input: &str) -> IResult<&str, (u32, u32, u32, u32)> {
-        tuple((
+    fn parse_time_code(input: &str) -> IResult<&str, TimeCode> {
+        let (remaining, tc) = tuple((
             Self::parse_time,
             preceded(tag(":"), Self::parse_time),
             preceded(tag(":"), Self::parse_time),
             preceded(tag(":"), Self::parse_time),
-        ))(input)
+        ))(input)?;
+
+        Ok((remaining, TimeCode::from((tc.0, tc.1, tc.2, tc.3))))
     }
 
     fn parse_time(input: &str) -> IResult<&str, u32> {
@@ -154,9 +156,7 @@ impl MCC {
         }
     }
 
-    fn parse_line(input: &str) -> IResult<&str, ((u32, u32, u32, u32), Vec<u8>)> {
-        dbg!("k");
-        dbg!(&input);
+    fn parse_line(input: &str) -> IResult<&str, (TimeCode, Vec<u8>)> {
         tuple((Self::parse_time_code, preceded(tab, Self::combined_parser)))(input)
     }
 
