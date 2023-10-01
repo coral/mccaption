@@ -7,7 +7,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take, take_while1},
     character::complete::{char, digit1, line_ending, multispace0, not_line_ending, one_of, tab},
-    combinator::{map, map_opt, map_res, recognize},
+    combinator::{map, map_opt, map_res, opt, recognize},
     multi::many0,
     multi::many1,
     sequence::{preceded, terminated, tuple},
@@ -99,6 +99,7 @@ impl Header {
 #[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub struct MCC {
     header: Header,
+    lines: Vec<MCCLine>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -110,24 +111,21 @@ pub struct MCCLine {
 impl MCC {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
         let mut file = read_to_string(path)?;
-        let (mut input, v) = Self::from_str(&mut file)?;
+        let (_, parsed) = Self::from_str(&mut file)?;
 
-        let (_, m) = Self::parse_lines(&mut input)?;
+        Ok(parsed)
+    }
 
-        dbg!(m);
+    pub fn from_str(input: &str) -> IResult<&str, MCC> {
+        let (input, header) = Header::parse(input)?;
+        let (_, lines) = Self::parse_lines(input)?;
 
-        Ok(v)
+        Ok((input, MCC { header, lines }))
     }
 
     fn parse_lines(input: &str) -> IResult<&str, Vec<MCCLine>> {
         let (input, _) = multispace0(input)?;
         many1(Self::parse_line)(input)
-    }
-
-    pub fn from_str(input: &str) -> IResult<&str, MCC> {
-        let (input, header) = Header::parse(input)?;
-
-        Ok((input, MCC { header }))
     }
 
     fn parse_time_code(input: &str) -> IResult<&str, TimeCode> {
@@ -168,8 +166,10 @@ impl MCC {
     }
 
     fn parse_line(input: &str) -> IResult<&str, MCCLine> {
-        let (remaining, (tc, data)) =
-            tuple((Self::parse_time_code, preceded(tab, Self::combined_parser)))(input)?;
+        let (remaining, (tc, data)) = terminated(
+            tuple((Self::parse_time_code, preceded(tab, Self::combined_parser))),
+            opt(line_ending),
+        )(input)?;
         Ok((remaining, MCCLine { timecode: tc, data }))
     }
 
