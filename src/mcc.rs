@@ -98,8 +98,8 @@ impl Header {
 
 #[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub struct MCC {
-    header: Header,
-    lines: Vec<MCCLine>,
+    pub header: Header,
+    pub lines: Vec<MCCLine>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -210,5 +210,21 @@ impl From<nom::Err<nom::error::Error<&str>>> for Error {
             nom::Err::Error(e) | nom::Err::Failure(e) => Error::ParseError(format!("{:?}", e)),
             nom::Err::Incomplete(_) => Error::ParseError("incomplete input".to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn from_file() {
+        use crate::MCC;
+        let bigbuck = MCC::from_file("examples/data/BigBuckBunny_256x144-24fps.mcc").unwrap();
+
+        assert_eq!(bigbuck.header.format, "MacCaption_MCC V1.0");
+        assert_eq!(bigbuck.lines[0].timecode.hour, 0);
+
+        let bigbuck = MCC::from_file("examples/data/Plan9fromOuterSpace.mcc").unwrap();
+
+        assert_eq!(bigbuck.header.format, "MacCaption_MCC V1.0");
     }
 }

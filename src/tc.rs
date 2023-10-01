@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TimeCodeFormat {
     Fps24,
@@ -22,16 +24,8 @@ impl TimeCodeFormat {
             _ => None,
         }
     }
-}
 
-impl Default for TimeCodeFormat {
-    fn default() -> Self {
-        TimeCodeFormat::Fps30
-    }
-}
-
-impl Into<&str> for TimeCodeFormat {
-    fn into(self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             TimeCodeFormat::Fps24 => "24",
             TimeCodeFormat::Fps25 => "25",
@@ -44,10 +38,56 @@ impl Into<&str> for TimeCodeFormat {
     }
 }
 
+impl Default for TimeCodeFormat {
+    fn default() -> Self {
+        TimeCodeFormat::Fps30
+    }
+}
+
+impl Display for TimeCodeFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl Into<&str> for TimeCodeFormat {
+    fn into(self) -> &'static str {
+        self.as_str()
+    }
+}
+
 impl Into<String> for TimeCodeFormat {
     fn into(self) -> String {
-        let s: &'static str = self.into();
-        s.to_string()
+        self.as_str().to_string()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct TimeCode {
+    pub hour: u32,
+    pub minute: u32,
+    pub second: u32,
+    pub frame: u32,
+}
+
+impl Display for TimeCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:02}:{:02}:{:02};{:02}",
+            self.hour, self.minute, self.second, self.frame
+        )
+    }
+}
+
+impl From<(u32, u32, u32, u32)> for TimeCode {
+    fn from((hour, minute, second, frame): (u32, u32, u32, u32)) -> Self {
+        TimeCode {
+            hour,
+            minute,
+            second,
+            frame,
+        }
     }
 }
 
@@ -80,24 +120,5 @@ mod tests {
 
         let vs: &str = TimeCodeFormat::Fps30DropFrame.into();
         assert_eq!(vs, "30DF");
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct TimeCode {
-    pub hour: u32,
-    pub minute: u32,
-    pub second: u32,
-    pub frame: u32,
-}
-
-impl From<(u32, u32, u32, u32)> for TimeCode {
-    fn from((hour, minute, second, frame): (u32, u32, u32, u32)) -> Self {
-        TimeCode {
-            hour,
-            minute,
-            second,
-            frame,
-        }
     }
 }
